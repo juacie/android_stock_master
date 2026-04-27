@@ -5,7 +5,9 @@ import com.juacie.stock.domain.usecase.GetStocksUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -44,10 +46,15 @@ class StockListViewModelTest {
 
         viewModel = StockListViewModel(getStocksUseCase)
         
-        // Wait for collect
+        // Start collecting stocks to trigger the StateFlow (since it's WhileSubscribed)
+        val collectJob = launch(UnconfinedTestDispatcher()) {
+            viewModel.stocks.collect {}
+        }
+
         advanceUntilIdle()
 
         assertEquals(mockStocks, viewModel.stocks.value)
+        collectJob.cancel()
     }
 
     @Test
@@ -59,6 +66,12 @@ class StockListViewModelTest {
         whenever(getStocksUseCase()).thenReturn(flowOf(mockStocks))
 
         viewModel = StockListViewModel(getStocksUseCase)
+        
+        // Start collecting stocks
+        val collectJob = launch(UnconfinedTestDispatcher()) {
+            viewModel.stocks.collect {}
+        }
+        
         advanceUntilIdle()
 
         viewModel.onSearchQueryChange("TSMC")
@@ -66,5 +79,7 @@ class StockListViewModelTest {
 
         assertEquals(1, viewModel.stocks.value.size)
         assertEquals("2330", viewModel.stocks.value[0].symbol)
+        
+        collectJob.cancel()
     }
 }

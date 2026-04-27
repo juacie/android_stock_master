@@ -48,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -64,7 +65,7 @@ fun StockListScreen(viewModel: StockListViewModel) {
 
     var showSortMenu by remember { mutableStateOf(false) }
     var selectedStockForDetails by remember { mutableStateOf<Stock?>(null) }
-    val sheetState = rememberModalBottomSheetState()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     Scaffold(
         topBar = {
@@ -241,6 +242,7 @@ fun StockDetailContent(stock: Stock) {
             .verticalScroll(scrollState)
             .padding(horizontal = 24.dp, vertical = 16.dp)
             .padding(bottom = 32.dp)
+            .testTag("stock_detail_content")
     ) {
         Text(
             text = stock.name,
