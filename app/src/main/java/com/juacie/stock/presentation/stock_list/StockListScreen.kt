@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -32,12 +33,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -69,84 +69,95 @@ fun StockListScreen(viewModel: StockListViewModel) {
 
     Scaffold(
         topBar = {
-            Column {
-                TopAppBar(
-                    title = { Text("StockMaster") },
-                    actions = {
-                        IconButton(onClick = { showSortMenu = true }) {
-                            Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = "Sort")
-                        }
-                        DropdownMenu(
-                            expanded = showSortMenu,
-                            onDismissRequest = { showSortMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Sort by Symbol") },
-                                onClick = {
-                                    viewModel.onSortTypeChange(SortType.SYMBOL)
-                                    showSortMenu = false
-                                },
-                                leadingIcon = { if(sortType == SortType.SYMBOL) Icon(Icons.Default.Check, null) }
+            Surface(
+                color = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.statusBarsPadding()
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextField(
+                            value = searchQuery,
+                            onValueChange = { viewModel.onSearchQueryChange(it) },
+                            modifier = Modifier.weight(1f),
+                            placeholder = { Text("搜尋股票名稱或代碼...") },
+                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                            trailingIcon = {
+                                if (searchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
+                                        Icon(Icons.Default.Clear, contentDescription = "清除")
+                                    }
+                                }
+                            },
+                            singleLine = true,
+                            shape = MaterialTheme.shapes.medium,
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent
                             )
-                            DropdownMenuItem(
-                                text = { Text("Sort by Price") },
-                                onClick = {
-                                    viewModel.onSortTypeChange(SortType.PRICE)
-                                    showSortMenu = false
-                                },
-                                leadingIcon = { if(sortType == SortType.PRICE) Icon(Icons.Default.Check, null) }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Sort by % Change") },
-                                onClick = {
-                                    viewModel.onSortTypeChange(SortType.CHANGE_PERCENT)
-                                    showSortMenu = false
-                                },
-                                leadingIcon = { if(sortType == SortType.CHANGE_PERCENT) Icon(Icons.Default.Check, null) }
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        titleContentColor = MaterialTheme.colorScheme.primary,
-                    )
-                )
-                
-                // Search Bar
-                TextField(
-                    value = searchQuery,
-                    onValueChange = { viewModel.onSearchQueryChange(it) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    placeholder = { Text("Search by name or symbol...") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
-                                Icon(Icons.Default.Clear, contentDescription = "Clear")
+                        )
+
+                        Box {
+                            IconButton(onClick = { showSortMenu = true }) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Sort,
+                                    contentDescription = "排序",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = showSortMenu,
+                                onDismissRequest = { showSortMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("依代碼排序") },
+                                    onClick = {
+                                        viewModel.onSortTypeChange(SortType.SYMBOL)
+                                        showSortMenu = false
+                                    },
+                                    leadingIcon = { if(sortType == SortType.SYMBOL) Icon(Icons.Default.Check, null) }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("依價格排序") },
+                                    onClick = {
+                                        viewModel.onSortTypeChange(SortType.PRICE)
+                                        showSortMenu = false
+                                    },
+                                    leadingIcon = { if(sortType == SortType.PRICE) Icon(Icons.Default.Check, null) }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("依漲跌幅排序") },
+                                    onClick = {
+                                        viewModel.onSortTypeChange(SortType.CHANGE_PERCENT)
+                                        showSortMenu = false
+                                    },
+                                    leadingIcon = { if(sortType == SortType.CHANGE_PERCENT) Icon(Icons.Default.Check, null) }
+                                )
                             }
                         }
-                    },
-                    singleLine = true,
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surface,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                    )
-                )
+                    }
 
-                // Tabs
-                PrimaryTabRow(selectedTabIndex = selectedTab) {
-                    Tab(
-                        selected = selectedTab == 0,
-                        onClick = { viewModel.onTabSelected(0) },
-                        text = { Text("All Stocks") }
-                    )
-                    Tab(
-                        selected = selectedTab == 1,
-                        onClick = { viewModel.onTabSelected(1) },
-                        text = { Text("Favorites") }
-                    )
+                    PrimaryTabRow(
+                        selectedTabIndex = selectedTab,
+                        containerColor = Color.Transparent
+                    ) {
+                        Tab(
+                            selected = selectedTab == 0,
+                            onClick = { viewModel.onTabSelected(0) },
+                            text = { Text("所有股票") }
+                        )
+                        Tab(
+                            selected = selectedTab == 1,
+                            onClick = { viewModel.onTabSelected(1) },
+                            text = { Text("自選股") }
+                        )
+                    }
                 }
             }
         }
