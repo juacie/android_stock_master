@@ -23,6 +23,8 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -50,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.juacie.stock.domain.model.Stock
@@ -58,7 +61,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StockListScreen(viewModel: StockListViewModel) {
-    val stocks by viewModel.stocks.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedTab by viewModel.selectedTab.collectAsState()
     val sortType by viewModel.sortType.collectAsState()
@@ -162,23 +165,54 @@ fun StockListScreen(viewModel: StockListViewModel) {
             }
         }
     ) { padding ->
-        if (stocks.isEmpty() && searchQuery.isNotEmpty()) {
-            Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Text("No results found for \"$searchQuery\"")
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-            ) {
-                items(stocks, key = { it.symbol }) { stock ->
-                    StockItem(
-                        stock = stock,
-                        onFavoriteClick = { viewModel.toggleFavorite(stock.symbol) },
-                        onClick = { selectedStockForDetails = stock }
-                    )
-                    HorizontalDivider()
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            when (val state = uiState) {
+                is StockListUiState.Loading -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
+                is StockListUiState.Error -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = state.message,
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center,
+                            fontSize = 16.sp
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = { viewModel.loadStocks() }) {
+                            Text("重試")
+                        }
+                    }
+                }
+                is StockListUiState.Empty -> {
+                    val emptyMessage = if (selectedTab == 1) "目前沒有自選股票" else "目前沒有股票資料"
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(emptyMessage, color = Color.Gray, fontSize = 16.sp)
+                    }
+                }
+                is StockListUiState.Success -> {
+                    if (state.stocks.isEmpty() && searchQuery.isNotEmpty()) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text("找不到關於 \"$searchQuery\" 的結果", color = Color.Gray)
+                        }
+                    } else {
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            items(state.stocks, key = { it.symbol }) { stock ->
+                                StockItem(
+                                    stock = stock,
+                                    onFavoriteClick = { viewModel.toggleFavorite(stock.symbol) },
+                                    onClick = { selectedStockForDetails = stock }
+                                )
+                                HorizontalDivider()
+                            }
+                        }
+                    }
                 }
             }
         }
