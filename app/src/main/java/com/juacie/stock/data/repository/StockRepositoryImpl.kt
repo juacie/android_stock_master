@@ -3,6 +3,8 @@ package com.juacie.stock.data.repository
 import com.juacie.stock.data.remote.TwseApi
 import com.juacie.stock.domain.model.Stock
 import com.juacie.stock.domain.repository.StockRepository
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -10,12 +12,20 @@ import kotlinx.coroutines.flow.flow
 class StockRepositoryImpl(private val api: TwseApi) : StockRepository {
     override fun getStocks(): Flow<List<Stock>> = flow {
         while (true) {
-            try {
-                val dayAll = api.getStockDayAll()
-                val bwibbuAll = api.getBwibbuAll().associateBy { it.code }
-                val dayAvgAll = api.getStockDayAvgAll().associateBy { it.code }
+            // 使用 coroutineScope 來實現並行請求
+            val stocks = coroutineScope {
+                // 1. 同時啟動三個 API 請求
+                val dayAllDeferred = async { api.getStockDayAll() }
+                val bwibbuAllDeferred = async { api.getBwibbuAll() }
+                val dayAvgAllDeferred = async { api.getStockDayAvgAll() }
 
-                val stocks = dayAll.map { day ->
+                // 2. 等待結果並合併
+                val dayAll = dayAllDeferred.await()
+                val bwibbuAll = bwibbuAllDeferred.await().associateBy { it.code }
+                val dayAvgAll = dayAvgAllDeferred.await().associateBy { it.code }
+
+                // 3. 轉換為 Domain Model
+                dayAll.map { day ->
                     val bwibbu = bwibbuAll[day.code]
                     val dayAvg = dayAvgAll[day.code]
 
@@ -40,11 +50,10 @@ class StockRepositoryImpl(private val api: TwseApi) : StockRepository {
                         monthlyAveragePrice = dayAvg?.monthlyAveragePrice
                     )
                 }
-                emit(stocks)
-            } catch (e: Exception) {
-                e.printStackTrace()
             }
-            delay(60000) // Refresh every 1 minute
+            
+            emit(stocks)
+            delay(60000) // 每一分鐘更新一次
         }
     }
 }

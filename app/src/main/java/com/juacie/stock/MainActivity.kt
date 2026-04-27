@@ -27,6 +27,9 @@ class MainActivity : ComponentActivity() {
         }
         val client = OkHttpClient.Builder()
             .addInterceptor(logging)
+            .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS) // 連線超時
+            .readTimeout(10, java.util.concurrent.TimeUnit.SECONDS)    // 讀取超時
+            .writeTimeout(10, java.util.concurrent.TimeUnit.SECONDS)   // 寫入超時
             .build()
 
         val api = Retrofit.Builder()
